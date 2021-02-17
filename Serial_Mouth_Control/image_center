@@ -1,0 +1,55 @@
+from scipy.spatial import distance as dist
+from imutils.video import VideoStream
+from imutils import face_utils
+from threading import Thread
+from serial import to_bytes
+from Serial_handler import serial_handler
+import numpy as np
+import argparse
+import imutils
+import serial
+import time
+import dlib
+import cv2
+
+video = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+
+while True:
+    check, frame = video.read()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    height, width, channels = frame.shape
+    size = (width, height)
+    cv2.line(frame, (0, int(height / 3)), (width, int(height / 3)), (0, 0, 255), 1, 1)  # devide image into 5 squares
+    cv2.line(frame, (0, int(2 * (height / 3))), (width, int(2 * (height / 3))), (0, 0, 255), 1, 1)
+    cv2.line(frame, (int(width / 3), 0), (int(width / 3), int(2 * (height / 3))), (0, 0, 255), 1, 1)
+    cv2.line(frame, (int(2 * (width / 3)), 0), (int(2 * (width / 3)), int(2 * (height / 3))), (0, 0, 255), 1, 1)
+
+    # map region to a motor and figure out a binary operation to move each direction ie open mouth left hand right hand
+    # result = cv2.VideoWriter('filename.avi',
+    #                          cv2.VideoWriter_fourcc(*'XVID'),
+    #                          10, size)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=5)
+    for x, y, w, h in faces:
+        box = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+        centre_x = x + w / 2
+        centre_y = y + y / 2
+        side = 0
+        if centre_x < (width / 2):
+            print("face detected on left")
+            side = '1'
+
+        else:
+            print("face detected on right")
+            side = '2'
+
+        serial_handler(side)
+
+    cv2.imshow("face", frame)
+
+    key = cv2.waitKey(1)
+    if key == ord('q'):
+        break
+
+video.release()
+cv2.destroyAllWindows()
